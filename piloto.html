@@ -229,6 +229,7 @@ footer{padding-block:28px;font-size:14px;color:var(--muted)}
           <li>Juntá los PDFs o mails de las compañías.</li>
           <li>Cuando entres, revisá lo que aparezca como “No consta” antes de mandarle el cuadro a tu cliente.</li>
         </ol>
+        <p><b>¡Gracias por confiar en nosotros!</b></p>
       </div>
     </div>
   </section>
@@ -269,9 +270,31 @@ footer{padding-block:28px;font-size:14px;color:var(--muted)}
       return;
     }
     err.hidden = true;
-    document.getElementById('t-name').textContent = f.nombre.value.trim().split(' ')[0];
-    form.hidden = true;
-    document.getElementById('thanks').hidden = false;
+    var btn = form.querySelector('button[type=submit]');
+    btn.disabled = true; btn.textContent = 'Enviando…';
+    // Los datos llegan por mail a lagartuz@gmail.com a través de FormSubmit.
+    fetch('https://formsubmit.co/ajax/lagartuz@gmail.com', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({
+        _subject: 'Nexo · Nuevo productor para el piloto (landing ' + (location.hash === '#b' ? 'B' : 'A') + ')',
+        _template: 'table', _captcha: 'false', _replyto: f.mail.value.trim(),
+        Nombre: f.nombre.value.trim(),
+        WhatsApp: f.tel.value.trim(),
+        Mail: f.mail.value.trim(),
+        Matricula: f.mat.value.trim(),
+        Companias: document.getElementById('f-cias').value,
+        Anuncio: location.hash === '#b' ? 'B (control)' : 'A (tiempo)'
+      })
+    }).then(function(r){ return r.json(); }).then(function(d){
+      if (String(d.success) !== 'true') throw new Error(d.message || 'error');
+      document.getElementById('t-name').textContent = f.nombre.value.trim().split(' ')[0];
+      form.hidden = true;
+      document.getElementById('thanks').hidden = false;
+    }).catch(function(){
+      err.textContent = 'No pudimos enviar tus datos. Probá de nuevo o escribinos a lagartuz@gmail.com.';
+      err.hidden = false; btn.disabled = false; btn.textContent = 'Sumate al piloto';
+    });
   });
   document.querySelectorAll('[data-copy]').forEach(function(b){
     b.addEventListener('click', function(){

@@ -317,8 +317,7 @@ footer{padding-block:28px;font-size:14px;color:var(--muted)}
           <div><span class="k">Instagram</span><span>@nexopas</span></div>
         </div>
       </div>
-      <form id="lead" name="piloto" method="POST" data-netlify="true" novalidate>
-        <input type="hidden" name="form-name" value="piloto">
+      <form id="lead" novalidate>
         <label for="f-nombre">Nombre y apellido<input id="f-nombre" name="nombre" autocomplete="name" required></label>
         <label for="f-mail">Mail<input id="f-mail" name="mail" type="email" autocomplete="email" required></label>
         <label for="f-tel">WhatsApp<input id="f-tel" name="whatsapp" type="tel" autocomplete="tel" placeholder="11 2345-6789"></label>
@@ -330,7 +329,8 @@ footer{padding-block:28px;font-size:14px;color:var(--muted)}
       </form>
       <div class="thanks" id="thanks" hidden style="background:var(--surface);color:var(--ink);border-radius:12px;padding:24px">
         <h3>¡Gracias, <span id="t-name"></span>!</h3>
-        <p>Para terminar de anotarte, mandanos un mail a <a href="mailto:lagartuz@gmail.com" style="color:inherit"><b>lagartuz@gmail.com</b></a> con tu nombre y la cantidad de compañías con las que trabajás. Te respondemos en el día hábil.</p>
+        <p>Ya tenemos tus datos. Te escribimos en el siguiente día hábil.</p>
+        <p><b>¡Gracias por confiar en nosotros!</b></p>
       </div>
     </div>
   </section>
@@ -346,17 +346,36 @@ footer{padding-block:28px;font-size:14px;color:var(--muted)}
 <script>
 (function(){
   var form=document.getElementById('lead');
-  var onNetlify=/netlify\.app$/.test(location.hostname);
+  var errEl=document.getElementById('f-err');
+  var errMsg=errEl.textContent;
   form.addEventListener('submit',function(e){
+    e.preventDefault();
     var n=document.getElementById('f-nombre').value.trim();
     var m=document.getElementById('f-mail').value.trim();
     var ok=n.length>1 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(m);
-    document.getElementById('f-err').hidden=ok;
-    if(!ok){e.preventDefault();return;}
-    if(onNetlify) return; // Netlify recibe el formulario de verdad
-    e.preventDefault();
-    document.getElementById('t-name').textContent=n.split(' ')[0];
-    form.hidden=true; document.getElementById('thanks').hidden=false;
+    errEl.textContent=errMsg; errEl.hidden=ok;
+    if(!ok) return;
+    var btn=form.querySelector('button[type=submit]');
+    btn.disabled=true; btn.textContent='Enviando…';
+    // Los datos llegan por mail a lagartuz@gmail.com a través de FormSubmit.
+    fetch('https://formsubmit.co/ajax/lagartuz@gmail.com',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Accept':'application/json'},
+      body:JSON.stringify({
+        _subject:'Nexo · Nuevo productor para el piloto (web)',
+        _template:'table', _captcha:'false', _replyto:m,
+        Nombre:n, Mail:m,
+        WhatsApp:document.getElementById('f-tel').value.trim()||'No informó',
+        Aseguradoras:document.getElementById('f-cias').value
+      })
+    }).then(function(r){return r.json();}).then(function(d){
+      if(String(d.success)!=='true') throw new Error(d.message||'error');
+      document.getElementById('t-name').textContent=n.split(' ')[0];
+      form.hidden=true; document.getElementById('thanks').hidden=false;
+    }).catch(function(){
+      errEl.textContent='No pudimos enviar tus datos. Probá de nuevo o escribinos a lagartuz@gmail.com.';
+      errEl.hidden=false; btn.disabled=false; btn.textContent='Quiero sumarme al piloto';
+    });
   });
   document.querySelectorAll('[data-copy]').forEach(function(b){
     b.addEventListener('click',function(){
